@@ -1,55 +1,64 @@
-# Elastic Inference Protocol (v0.12-alpha)
-> **Dynamic Entropy-Gated Early Exiting for Large Language Models**
+# Elastic Inference Protocol (EIP-0.12) — Empirical Audit
 
----
+> Can we identify *when* a transformer "knows" the answer — and skip the rest?
 
-## 🚩 The Problem: The Thermodynamic Wall
-Current Transformer architectures suffer from **Dense Compute Waste**. Every token—whether it is a high-logic reasoning step or a low-entropy grammatical filler—is processed with the same trillion-parameter intensity. 
+## What This Is
 
-*   **Outcome:** 80–90% waste of H100 FLOPs.
-*   **Consequence:** Unsustainable thermal throttling and $0.90/$1.00 waste in unit economics.
+An empirical investigation into **layer-wise token entropy** in transformer 
+models. We probe hidden states at intermediate layers to find the point of 
+"Semantic Settlement" — where a token's representation stabilizes and further 
+computation adds no signal.
 
-## 💡 The Solution: 0.12-bit Entropy Gating
-The **Elastic Inference Protocol (EIP)** introduces a hardware-aware "Logic Gate" at the kernel level. By measuring the **Softmax Entropy ($H$)** of hidden states at early-to-mid layers, EIP identifies the "Semantic Settlement" point of a token.
+This repo contains the measurement tooling, real experimental results, and 
+the hypothesis that this settlement point moves earlier in larger models.
 
-### **Core Specification:**
-*   **The 0.12 Threshold ($\tau$):** Tokens with $H < 0.12$ bits are classified as **"Settled"** (Fact/Grammar) and bypass remaining layers via a **Speculative Exit**.
-*   **Logic Preservation:** Tokens with $H \geq 0.12$ bits are classified as **"Active Reasoning"** and bypass the gate to reach deep-reasoning layers (96+).
-*   **Speculative Bypass:** To negate the CUDA synchronization penalty, the entropy probe is computed asynchronously with the subsequent layer's forward pass.
+## Key Finding (TinyLlama 1.1B)
 
-## 📊 Projected Unit Economics (1T Parameter Model)
+![Entropy Trajectories](eip_entropy_audit.png)
 
-| Metric | Standard Dense | **Elastic (EIP-0.12)** |
-| :--- | :--- | :--- |
-| **Active Parameters** | 1,000B (Fixed) | **120B - 1,000B (Dynamic)** |
-| **Energy / Token** | 100% | **~20-25%** |
-| **User Density** | 1x | **4x (on existing clusters)** |
-| **Reasoning (MATH)** | 100% | **>98% Persistence** |
+- **Layers 1–16:** All tokens plateau at 10–12 bits entropy. No early settlement.
+- **Layers 16–22:** Sharp phase transition. Most tokens collapse rapidly.
+- **`x` token:** Approaches near-zero entropy by final layers.
+- **The 0.12 gate is not crossed** at 1.1B scale.
 
-## 🛠 Implementation Roadmap
-- [x] **Mathematical Thesis:** Completed.
-- [x] **0.12 Entropy Threshold Calibration:** Verified via 70B+ LLM trace analysis.
-- [ ] **CUDA Kernel Fused-Probe:** In development.
-- [ ] **Infrastructure Benchmarking:** Targeting vLLM and TensorRT-LLM.
+### What this means
 
----
-*Developed as a neutral, open standard for the Agentic Era.*
+Early exit is not viable at 1.1B — semantic settlement is compressed into 
+the final 6 layers rather than distributed across depth. This is the 
+**baseline finding** this repo exists to test against larger models.
 
+## The Hypothesis
 
-### 📈 Proof of Concept: Token Entropy Analysis
+| Model Scale | Predicted Settlement Layer | Status |
+|-------------|---------------------------|--------|
+| 1.1B (TinyLlama) | L16-22 (terminal) | ✅ Confirmed |
+| 7B (Mistral) | L12-18 (mid-depth?) | 🔬 To be tested |
+| 70B (Llama-3) | L8-16 (early?) | 🔬 To be tested |
 
-To calibrate the **0.12-bit threshold**, we analyze the layer-wise hidden state entropy ($H$) of a **70B+ Parameter Model** across mixed-reasoning datasets.
+If settlement moves earlier as parameters scale, the EIP gate becomes 
+viable — and this repo will have the empirical evidence to prove it.
 
-#### **The Divergence: 'Certainty' vs. 'Reasoning'**
-A "Dumb" token (predictable grammar) reaches a low-entropy state almost immediately, while a "Reasoning" token requires the full depth of the model to resolve its logical path.
+## Run It Yourself
+```bash
+pip install torch transformers matplotlib
+python eip_audit.py
+```
 
+Runs on CPU. No GPU required for 1.1B.
 
-| Token Type | Context Example | Model Confidence | Layer-24 Entropy ($H$) | Protocol Action |
-| :--- | :--- | :--- | :--- | :--- |
-| **Filler** | "The capital of..." | **High Certainty** | **~0.04 bits** | **EARLY EXIT** |
-| **Operator** | "3x + 10 **=** 25" | **Predictive** | **0.08 bits** | **EARLY EXIT** |
-| **Logic** | "Subtract 10 from..." | **Low Certainty** | **0.42 bits** | **FULL PASS** |
-| **Forking** | "Therefore, x is..." | **Reasoning** | **0.38 bits** | **FULL PASS** |
+## What's Next
 
-#### **The "Gold" Signal:** 
-In standard enterprise workflows (Email, RAG, Jira), **~82% of tokens** reach the $H < 0.12$ threshold before Layer 24. Forcing these tokens through the remaining 70+ layers of a 1T-parameter model is a **thermodynamic failure**. EIP-0.12 recovers this compute for **zero-cost logic**.
+- [ ] Mistral-7B layer entropy audit (needs A100)
+- [ ] Cross-model settlement layer comparison chart  
+- [ ] Threshold calibration across token categories
+- [ ] Formal write-up
+
+## Honest Caveats
+
+- Results are on one model and one prompt so far
+- The 0.12 threshold is a hypothesis, not yet an empirically derived constant
+- Hidden state entropy ≠ output certainty — methodology notes in `NOTES.md`
+
+## Contributing
+
+If you have A100 access and want to run the 7B audit, open an issue.
