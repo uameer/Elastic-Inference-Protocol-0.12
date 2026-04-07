@@ -60,5 +60,7 @@ Runs on CPU. No GPU required for 1.1B.
 - Hidden state entropy ≠ output certainty — methodology notes in `NOTES.md`
 
 ## Contributing
-
-If you have A100 access and want to run the 7B audit, open an issue.
+The next milestone is a Mistral-7B audit. If you have A100 access:
+1. Run `eip_audit.py` with `model_id="mistralai/Mistral-7B-v0.1"`
+2. Paste results in a new issue
+3. We'll add it to the cross-model comparison
