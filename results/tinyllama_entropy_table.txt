@@ -1,0 +1,22 @@
+
+--- SETTLING LAYER ANALYSIS ---
+Token           | Settles at Layer   | Final H
+--------------------------------------------------
+<s>             | NEVER              | 5.6917
+_The            | NEVER              | 10.2992
+_capital        | NEVER              | 2.4318
+_of             | NEVER              | 7.3190
+_France         | NEVER              | 5.8877
+_is             | NEVER              | 2.4578
+_Paris          | NEVER              | 3.3229
+.               | NEVER              | 5.7178
+_If             | NEVER              | 4.0058
+_x              | NEVER              | 4.3739
+=               | NEVER              | 3.9165
+2               | NEVER              | 4.2125
+_then           | NEVER              | 5.5607
+_               | NEVER              | 3.1157
+5               | NEVER              | 4.0000
++               | NEVER              | 3.5176
+x               | NEVER              | 1.9278
+_is             | NEVER              | 4.4662
