@@ -14,7 +14,7 @@ the hypothesis that this settlement point moves earlier in larger models.
 
 ## Key Finding (TinyLlama 1.1B)
 
-![Entropy Trajectories](assets/eip_entropy_audit.png)
+![Token Entropy Trajectories](assets/eip_entropy_audit.png)
 
 - **Layers 1–16:** All tokens plateau at 10–12 bits entropy. No early settlement.
 - **Layers 16–22:** Sharp phase transition. Most tokens collapse rapidly.
